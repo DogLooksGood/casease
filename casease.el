@@ -170,8 +170,7 @@ Saved to `casease--overlay'."
     (delete-overlay casease--overlay))
   (setq casease--activate nil
         casease--overlay nil
-        casease--last-last-input-event nil
-        casease--upcase-next-char nil))
+        casease--last-last-input-event nil))
 
 (defun casease--looking-back-prefix (the-case)
   (let ((case-fold-search nil))
@@ -228,8 +227,6 @@ This is only available during the conversion."
                          (= beg end)))))
       (casease--end))
     (unless (equal this-command 'self-insert-command)
-      (when casease--upcase-next-char
-        (setq casease--upcase-next-char nil))
       (setq casease--last-last-input-event nil))))
 
 (defun casease--init ()
