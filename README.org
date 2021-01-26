@@ -1,0 +1,55 @@
+#+title CASEASE
+
+#+begin_quote
+ease for cases
+#+end_quote
+
+[[file:https://user-images.githubusercontent.com/11796018/105870968-c9319300-6033-11eb-80a3-efb10f80560b.gif]]
+
+* Description
+
+  Casease can help you convert cases when you typing a name,
+  like snake_case, camelCase, PascalCase, SCREAMING_CASE.
+
+  It can be easily setup with different rules for different programming major modes.
+
+* Usage
+
+  #+begin_src emacs-lisp
+    (require 'casease)
+
+    (casease-setup
+     :hook python-mode-hook
+     :separator ?,
+     :entries
+     ((pascal "\\(-\\)[a-z]" "[A-Z]")
+      (snake "[a-z]")))
+    ;;; hook will be setup, re-run after changing rules or separator
+  #+end_src
+
+  Above is an example setup for ~python-mode~, here we use comma as separator.
+
+  The ~entries~ tells casease when to start conversion, rules will be tested with order.
+  Each rule is a list, the first element is the target case, the rest elements are regexps.
+  If the regexp is matched when looking back from the position of your cursor, conversion will start.
+
+  The regexp can have at most one capture group, the captured text will be deleted when conversion start.
+
+  The regexp should match at most two characters.
+
+  In this example, we can input ~the_snake_case~ with ~the,snake,case~,
+  and input ~ThePascalCase~ with ~,the,pascal,case~.
+
+  The conversion will stop once your cursor leaving the highlight or you give a non alphanum input.
+
+* Supported cases
+
+  * ~snake~ for snake_case
+  * ~camel~ for camelCase
+  * ~pascal~ for PascalCase
+  * ~screaming~ for SCREAMING_CASE
+  * ~kebab~ for kebab-case
+
+* Licence
+
+  Under GPLv3.
