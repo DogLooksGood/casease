@@ -1,4 +1,4 @@
-#+title CASEASE
+#+title: CASEASE
 
 #+begin_quote
 ease for cases
