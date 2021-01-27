@@ -20,14 +20,14 @@ ease for cases
 
     (casease-setup
      :hook python-mode-hook
-     :separator ?,
+     :separator ?-
      :entries
      ((pascal "\\(-\\)[a-z]" "[A-Z]")
       (snake "[a-z]")))
     ;;; hook will be setup, re-run after changing rules or separator
   #+end_src
 
-  Above is an example setup for ~python-mode~, here we use comma as separator.
+  Above is an example setup for ~python-mode~, here we use hyphen as separator.
 
   The ~entries~ tells casease when to start conversion, rules will be tested with order.
   Each rule is a list, the first element is the target case, the rest elements are regexps.
@@ -37,8 +37,8 @@ ease for cases
 
   The regexp should match at most two characters.
 
-  In this example, we can input "the_snake_case" with "the,snake,case",
-  and input "ThePascalCase" with ",the,pascal,case".
+  In this example, we can input "the_snake_case" with "the-snake-case",
+  and input "ThePascalCase" with "-the-pascal-case".
 
   The conversion will stop once your cursor leaving the highlight or you give a non alphanum input.
 

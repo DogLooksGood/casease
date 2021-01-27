@@ -57,7 +57,7 @@
 
 Set different values for different buffers.")
 
-(defvar-local casease-separator-key ?,
+(defvar-local casease-separator-key ?-
   "The key used for word separator.")
 
 (defvar-local casease-input-keys
@@ -286,17 +286,15 @@ The original commands contains `self-insert-command', you don't have to specify.
 
 Example usage:
 \(casease-setup
-   :hook python-mode-hook
-   :separator ?,
+   :hook clojure-mode-hook
+   :separator ?-
    :inputs (?/)
    :commands (cljr-slash)
    :entries
-   ((pascal \"\\(,\\)[a-z]\")
-    (camel \"(\\.\")
-    (kebab \"[a-z]\")))
+   ((pascal \"\\(-\\)[a-z]\")
+    (camel \"(\\.\")))
 
-
-In this example, we will use kebab case by default, enable pascal case with prefix comma.
+In this example, we enable pascal case with prefix hyphen.
 And \"(.\" is leading to an camel case.
 
 We also add / character as extra keys those continue the conversion,
