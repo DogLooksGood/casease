@@ -60,9 +60,12 @@ Set different values for different buffers.")
 (defvar-local casease-separator-key ?,
   "The key used for word separator.")
 
-(defvar casease--input-keys
+(defvar-local casease-input-keys
   '(?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9)
   "Keys to keep us stay in casease state.")
+
+(defvar-local casease-extending-commands '(self-insert-command)
+  "Commands to extending conversion area.")
 
 (defvar casease--first-conversion nil
   "Indicating we don't need post-command-hook function when just we started.")
@@ -123,7 +126,8 @@ Saved to `casease--overlay'."
         (delete-char -1)
         (insert "_")
         (forward-char -1))))
-  (casease--extend-overlay))
+  ;; (casease--extend-overlay)
+  )
 
 (defun casease--extend-kebab ()
   "Extend kebab case conversion."
@@ -135,21 +139,23 @@ Saved to `casease--overlay'."
         (delete-char -1)
         (insert "-")
         (forward-char -1))))
-  (casease--extend-overlay))
+  ;; (casease--extend-overlay)
+  )
 
 (defun casease--extend-camel ()
   "Extend camel case conversion."
   (when (equal casease--last-last-input-event casease-separator-key)
     (delete-region (- (point) 2) (1- (point)))
     (upcase-char -1))
-  (casease--extend-overlay))
+  ;; (casease--extend-overlay)
+  )
 
 (defun casease--extend-pascal ()
   "Extend pascal case conversion."
   (when (equal casease--last-last-input-event casease-separator-key)
     (delete-region (- (point) 2) (1- (point)))
     (upcase-char -1))
-  (casease--extend-overlay)
+  ;; (casease--extend-overlay)
   (upcase-region (overlay-start casease--overlay) (1+ (overlay-start casease--overlay))))
 
 (defun casease--extend-screaming ()
@@ -160,7 +166,7 @@ Saved to `casease--overlay'."
      (delete-char -1)
      (insert "_")))
   (upcase-char -1)
-  (casease--extend-overlay)
+  ;; (casease--extend-overlay)
   (upcase-region (overlay-start casease--overlay) (overlay-end casease--overlay)))
 
 (defun casease--end ()
@@ -179,10 +185,11 @@ Saved to `casease--overlay'."
 
 (defun casease--post-self-insert-function ()
   "Hook function for `post-self-insert-hook'."
-  (let* ((is-input-key (member last-input-event casease--input-keys)))
+  (let* ((is-input-key (member last-input-event casease-input-keys)))
     (cond
      ((and casease--activate (equal last-input-event casease-separator-key))
-      (casease--extend-overlay))
+      ;; (casease--extend-overlay)
+      )
 
      ((and casease--activate (not is-input-key))
       (casease--end))
@@ -218,6 +225,10 @@ Saved to `casease--overlay'."
 This is only available during the conversion."
   (if casease--first-conversion
       (setq casease--first-conversion nil)
+
+    (when (member this-command casease-extending-commands)
+        (casease--extend-overlay))
+
     (when (and casease--overlay
                (or (equal this-command 'keyboard-quit)
                    (let ((beg (overlay-start casease--overlay))
@@ -226,7 +237,8 @@ This is only available during the conversion."
                          (> (point) end)
                          (= beg end)))))
       (casease--end))
-    (unless (equal this-command 'self-insert-command)
+
+    (unless (member this-command casease-extending-commands)
       (setq casease--last-last-input-event nil))))
 
 (defun casease--init ()
@@ -246,18 +258,48 @@ This is only available during the conversion."
 (defmacro casease-setup (&rest args)
   "Setup casease with SEPARATOR, ENTRIES and HOOK.
 
+:hook is the hook name that casease used for setup.
+
+:separator is the key to separate words during input.
+This is optional, when not provided, the default `casease-separator-key' will be used.
+
+:inputs is a list of keys, they are add to buffer local `casease-input-keys'.
+The original keys contains [a-z][0-9], you don't have to specify.
+
+:commands is a list of command names, those will extend the conversion area.
+The original commands contains `self-insert-command', you don't have to specify.
+
+:entries is the rules for starting conversion.
+
+Example usage:
 \(casease-setup
    :hook python-mode-hook
    :separator ?,
-   :entries ((pascal \"\\(,\\)[a-z]\")
-             (snake \"[a-z]\")))
-"
-  (-let* (((:hook hook :separator separator :entries entries) args)
-          (hook-fn (intern (concat "casease-setup-for-" (symbol-name hook)))))
+   :inputs (?/)
+   :commands (cljr-slash)
+   :entries
+   ((pascal \"\\(,\\)[a-z]\")
+    (camel \"(\\.\")
+    (kebab \"[a-z]\")))
+
+
+In this example, we will use kebab case by default, enable pascal case with prefix comma.
+And \"(.\" is leading to an camel case.
+
+We also add / character as extra keys those continue the conversion,
+and we don't let cljr-slash command quit the conversion."
+  (let* ((hook (plist-get args :hook))
+         (separator (plist-get args :separator))
+         (inputs (plist-get args :inputs))
+         (commands (plist-get args :commands))
+         (entries (plist-get args :entries))
+         (hook-fn (intern (concat "casease-setup-for-" (symbol-name hook)))))
     `(progn
        (defun ,hook-fn ()
-         (setq-local casease-separator-key ,separator)
+         (when ,separator (setq-local casease-separator-key ,separator))
          (setq-local casease-entry-alist (quote ,entries))
+         (dolist (k (quote ,inputs)) (add-to-list 'casease-input-keys k))
+         (dolist (c (quote ,commands)) (add-to-list 'casease-extending-commands c))
          (casease-mode t))
        (add-hook (quote ,hook) (quote ,hook-fn)))))
 

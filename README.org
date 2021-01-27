@@ -37,10 +37,12 @@ ease for cases
 
   The regexp should match at most two characters.
 
-  In this example, we can input ~the_snake_case~ with ~the,snake,case~,
-  and input ~ThePascalCase~ with ~,the,pascal,case~.
+  In this example, we can input "the_snake_case" with "the,snake,case",
+  and input "ThePascalCase" with ",the,pascal,case".
 
   The conversion will stop once your cursor leaving the highlight or you give a non alphanum input.
+
+  See document of ~casease-setup~ for more advanced used.
 
 * Supported cases
 
