@@ -114,7 +114,12 @@ Saved to `casease--overlay'."
     (casease--make-overlay beg end)
     (add-hook 'post-command-hook #'casease--post-command-function nil t)
     (setq casease--activate activate-case
-          casease--first-conversion t)))
+          casease--first-conversion t)
+
+    ;; cases specific initialization
+    (cl-case activate-case
+      ((screaming) (casease--init-screaming))
+      ((pascal) (casease--init-pascal)))))
 
 (defun casease--extend-snake ()
   "Extend snake case conversion."
@@ -125,9 +130,7 @@ Saved to `casease--overlay'."
       (while (and (> (point) beg) (equal (char-before) casease-separator-key))
         (delete-char -1)
         (insert "_")
-        (forward-char -1))))
-  ;; (casease--extend-overlay)
-  )
+        (forward-char -1)))))
 
 (defun casease--extend-kebab ()
   "Extend kebab case conversion."
@@ -138,36 +141,55 @@ Saved to `casease--overlay'."
       (while (and (> (point) beg) (equal (char-before) casease-separator-key))
         (delete-char -1)
         (insert "-")
-        (forward-char -1))))
-  ;; (casease--extend-overlay)
-  )
+        (forward-char -1)))))
 
 (defun casease--extend-camel ()
   "Extend camel case conversion."
   (when (equal casease--last-last-input-event casease-separator-key)
     (delete-region (- (point) 2) (1- (point)))
-    (upcase-char -1))
-  ;; (casease--extend-overlay)
-  )
+    (upcase-char -1)))
+
+(defun casease--init-pascal ()
+  (let ((beg (overlay-start casease--overlay)))
+    (save-mark-and-excursion
+      (goto-char beg)
+      (upcase-char 1))))
 
 (defun casease--extend-pascal ()
   "Extend pascal case conversion."
   (when (equal casease--last-last-input-event casease-separator-key)
     (delete-region (- (point) 2) (1- (point)))
     (upcase-char -1))
-  ;; (casease--extend-overlay)
   (upcase-region (overlay-start casease--overlay) (1+ (overlay-start casease--overlay))))
+
+(defun casease--init-screaming ()
+  (let ((beg (overlay-start casease--overlay))
+        (end (overlay-end casease--overlay)))
+    (goto-char beg)
+    (while (< (point) end)
+      (cond
+       ((equal (char-after) casease-separator-key)
+        (delete-char 1)
+        (insert "_"))
+       ((equal (char-after) ?-)
+        (delete-char 1)
+        (insert "_"))
+       (t
+        (upcase-char 1)
+        (forward-char 1))))))
 
 (defun casease--extend-screaming ()
   "Extend screaming case conversion."
-  (when (equal (char-before (1- (point))) casease-separator-key)
-   (save-mark-and-excursion
-     (goto-char (1- (point)))
-     (delete-char -1)
-     (insert "_")))
-  (upcase-char -1)
-  ;; (casease--extend-overlay)
-  (upcase-region (overlay-start casease--overlay) (overlay-end casease--overlay)))
+  (let ((beg (overlay-start casease--overlay)))
+    (cond
+     ((equal (char-before) casease-separator-key)
+      (delete-char -1)
+      (insert "_"))
+     ((equal (char-before) ?-)
+      (delete-char -1)
+      (insert "_"))
+     (t
+      (upcase-char -1)))))
 
 (defun casease--end ()
   "End conversion."
@@ -187,9 +209,7 @@ Saved to `casease--overlay'."
   "Hook function for `post-self-insert-hook'."
   (let* ((is-input-key (member last-input-event casease-input-keys)))
     (cond
-     ((and casease--activate (equal last-input-event casease-separator-key))
-      ;; (casease--extend-overlay)
-      )
+     ;; ((and casease--activate (equal last-input-event casease-separator-key)))
 
      ((and casease--activate (not is-input-key))
       (casease--end))
@@ -262,6 +282,7 @@ This is only available during the conversion."
 
 :separator is the key to separate words during input.
 This is optional, when not provided, the default `casease-separator-key' will be used.
+This separator will also be added to `casease-input-keys'.
 
 :inputs is a list of keys, they are add to buffer local `casease-input-keys'.
 The original keys contains [a-z][0-9], you don't have to specify.
@@ -296,7 +317,9 @@ and we don't let cljr-slash command quit the conversion."
          (hook-fn (intern (concat "casease-setup-for-" (symbol-name hook)))))
     `(progn
        (defun ,hook-fn ()
-         (when ,separator (setq-local casease-separator-key ,separator))
+         (when ,separator
+           (setq-local casease-separator-key ,separator)
+           (add-to-list 'casease-input-keys ,separator))
          (setq-local casease-entry-alist (quote ,entries))
          (dolist (k (quote ,inputs)) (add-to-list 'casease-input-keys k))
          (dolist (c (quote ,commands)) (add-to-list 'casease-extending-commands c))
