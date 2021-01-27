@@ -70,9 +70,6 @@ Set different values for different buffers.")
 (defvar casease--first-conversion nil
   "Indicating we don't need post-command-hook function when just we started.")
 
-(defvar casease--last-last-input-event nil
-  "The previous `last-input-event'.")
-
 (defvar-local casease--activate nil
   "Current casease activate state, nil means disabled.
 
@@ -145,7 +142,7 @@ Saved to `casease--overlay'."
 
 (defun casease--extend-camel ()
   "Extend camel case conversion."
-  (when (equal casease--last-last-input-event casease-separator-key)
+  (when (equal (char-before (1- (point))) casease-separator-key)
     (delete-region (- (point) 2) (1- (point)))
     (upcase-char -1)))
 
@@ -157,10 +154,9 @@ Saved to `casease--overlay'."
 
 (defun casease--extend-pascal ()
   "Extend pascal case conversion."
-  (when (equal casease--last-last-input-event casease-separator-key)
+  (when (equal (char-before (1- (point))) casease-separator-key)
     (delete-region (- (point) 2) (1- (point)))
-    (upcase-char -1))
-  (upcase-region (overlay-start casease--overlay) (1+ (overlay-start casease--overlay))))
+    (upcase-char -1)))
 
 (defun casease--init-screaming ()
   (let ((beg (overlay-start casease--overlay))
@@ -197,8 +193,7 @@ Saved to `casease--overlay'."
   (when casease--overlay
     (delete-overlay casease--overlay))
   (setq casease--activate nil
-        casease--overlay nil
-        casease--last-last-input-event nil))
+        casease--overlay nil))
 
 (defun casease--looking-back-prefix (the-case)
   (let ((case-fold-search nil))
@@ -234,10 +229,11 @@ Saved to `casease--overlay'."
         (-some->> casease-entry-alist
           (-first
            (-lambda ((the-case . res))
-             (-any-p (lambda (re) (looking-back re 2)) res)))
+             (if (= (point) 2)
+                 (-any-p (lambda (re) (looking-back re 1)) res)
+               (-any-p (lambda (re) (looking-back re 2)) res))))
           car
-          casease--start)))))
-  (setq casease--last-last-input-event last-input-event))
+          casease--start))))))
 
 (defun casease--post-command-function ()
   "Hook function for `post-command-hook'.
@@ -256,10 +252,7 @@ This is only available during the conversion."
                      (or (< (point) beg)
                          (> (point) end)
                          (= beg end)))))
-      (casease--end))
-
-    (unless (member this-command casease-extending-commands)
-      (setq casease--last-last-input-event nil))))
+      (casease--end))))
 
 (defun casease--init ()
   "Enable casease mode."
@@ -272,8 +265,7 @@ This is only available during the conversion."
   (when casease--overlay
     (delete-overlay casease--overlay))
   (setq casease--activate nil
-        casease--overlay nil
-        casease--last-last-input-event nil))
+        casease--overlay nil))
 
 (defmacro casease-setup (&rest args)
   "Setup casease with SEPARATOR, ENTRIES and HOOK.
@@ -317,12 +309,10 @@ and we don't let cljr-slash command quit the conversion."
          (hook-fn (intern (concat "casease-setup-for-" (symbol-name hook)))))
     `(progn
        (defun ,hook-fn ()
-         (when ,separator
-           (setq-local casease-separator-key ,separator)
-           (add-to-list 'casease-input-keys ,separator))
+         (when ,separator (setq-local casease-separator-key ,separator))
          (setq-local casease-entry-alist (quote ,entries))
-         (dolist (k (quote ,inputs)) (add-to-list 'casease-input-keys k))
-         (dolist (c (quote ,commands)) (add-to-list 'casease-extending-commands c))
+         (setq-local casease-input-keys (append casease-input-keys (quote ,inputs) (list ,separator)))
+         (setq-local casease-extending-commands (append casease-extending-commands (quote ,commands)))
          (casease-mode t))
        (add-hook (quote ,hook) (quote ,hook-fn)))))
 
