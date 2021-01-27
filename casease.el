@@ -120,25 +120,15 @@ Saved to `casease--overlay'."
 
 (defun casease--extend-snake ()
   "Extend snake case conversion."
-  (save-mark-and-excursion
-    (let ((beg (overlay-start casease--overlay))
-          (end (overlay-end casease--overlay)))
-      (goto-char end)
-      (while (and (> (point) beg) (equal (char-before) casease-separator-key))
-        (delete-char -1)
-        (insert "_")
-        (forward-char -1)))))
+  (when (equal (char-before) casease-separator-key)
+    (delete-char -1)
+    (insert "_")))
 
 (defun casease--extend-kebab ()
   "Extend kebab case conversion."
-  (save-mark-and-excursion
-    (let ((beg (overlay-start casease--overlay))
-          (end (overlay-end casease--overlay)))
-      (goto-char end)
-      (while (and (> (point) beg) (equal (char-before) casease-separator-key))
-        (delete-char -1)
-        (insert "-")
-        (forward-char -1)))))
+  (when (equal (char-before) casease-separator-key)
+    (delete-char -1)
+    (insert "-")))
 
 (defun casease--extend-camel ()
   "Extend camel case conversion."
